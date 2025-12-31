@@ -7,6 +7,10 @@ app = Flask(__name__)
 # Enable CORS so frontend can call backend
 CORS(app)
 
+@app.route("/")
+def home():
+    return "Sentiment AI Backend is running. Use /analyze for processing."
+
 # Load SpaCy small English model
 # Run: python -m spacy download en_core_web_sm
 try:
