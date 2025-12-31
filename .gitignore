@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+ENV/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Workspace
+.gemini/
+.vscode/
+.idea/
