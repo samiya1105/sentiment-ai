@@ -1,6 +1,6 @@
 Flask==3.1.2
 flask-cors
-spacy==3.8.1
+spacy==3.8.11
 numpy>=1.26.4
 requests==2.32.5
 gunicorn
