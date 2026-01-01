@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import spacy
 import os
+import re
 
 app = Flask(__name__)
 # Enable CORS so frontend can call backend
@@ -63,17 +64,78 @@ def detect_intent(text, lemmas):
     text_lower = text.lower()
     lemma_set = set(l.lower() for l in lemmas)
     
-    if any(w in text_lower for w in ['hello', 'hi', 'hey', 'greetings', 'morning']):
-        return "Greeting"
-    if any(w in lemma_set for w in ['help', 'support', 'assist', 'issue', 'problem', 'error']):
-        return "Support Request"
-    if any(w in lemma_set for w in ['return', 'refund', 'exchange', 'money']):
-        return "Return/Refund"
-    if '?' in text or any(w in lemma_set for w in ['what', 'how', 'when', 'where', 'why']):
-        return "Question"
-    if any(w in lemma_set for w in ['buy', 'purchase', 'order', 'price', 'cost']):
-        return "Purchase Inquiry"
+    # Priority-based intent mapping
+    intent_map = {
+        # 1. Specific Business & Transactional
+        "Payment Issue": ["payment failed", "card declined"],
+        "Order Status": ["order status", "tracking", "shipped", "order"],
+        "Delivery / Shipping": ["delivery date", "delay", "shipping cost"],
+        "Return / Refund / Exchange": ["return", "refund", "exchange", "money", "replace"],
+        "Cancellation": ["cancel order", "stop service", "cancel"],
+        "Billing / Invoice": ["bill", "invoice", "charge", "fee"],
+        "Availability Check": ["available", "in stock", "left"],
+        "Purchase Inquiry": ["buy", "purchase", "price", "cost"],
         
+        # 2. Support & Technical
+        "Account Issue": ["login", "password", "account locked"],
+        "Technical Issue": ["bug", "error", "not working", "crash"],
+        "Escalation / Human Request": ["talk to agent", "customer care", "agent"],
+        "Support Request": ["help", "support", "assist", "issue", "problem"],
+        
+        # 3. Specific Information Requests
+        "How-to / Instruction Request": ["how to use", "steps", "guide", "tutorial"],
+        "Recommendation / Suggestion Request": ["suggest", "recommend", "best option"],
+        "Clarification Request": ["can you explain", "unclear", "didn't understand"],
+        "Bot Capability Question": ["what can you do"],
+        "Bot Feedback": ["slow", "smart bot", "good bot", "bad bot"],
+        
+        # 4. Security & Privacy
+        "Privacy Concern": ["privacy", "data", "information safety"],
+        "Security Issue": ["hacked", "fraud", "suspicious"],
+        
+        # 5. User Intent Control
+        "Command / Action Request": ["do this", "generate", "analyze", "start"],
+        "Comparison": ["compare", "vs", "difference between"],
+        "Search Intent": ["find", "look for", "search"],
+        
+        # 6. Feedback & Opinions
+        "Complaint": ["bad service", "unhappy", "disappointed"],
+        "Suggestion / Feature Request": ["improve", "add feature", "suggestion", "add"],
+        "Review / Rating": ["rate", "stars", "review"],
+        "Positive Feedback": ["good", "nice", "loved it", "awesome"],
+        "Negative Feedback": ["bad", "poor", "terrible"],
+        "Error / Misunderstanding": ["that's wrong", "that is wrong", "incorrect response"],
+        
+        # 7. Core Social & Casual
+        "Small Talk": ["how are you", "what's up", "how's it going"],
+        "Joke / Fun": ["joke", "funny", "lol"],
+        "Emotional Expression": ["happy", "sad", "angry", "frustrated"],
+        "Greeting": ["hello", "hi", "hey", "greetings", "morning", "good morning"],
+        "Farewell": ["bye", "goodbye", "see you", "take care"],
+        "Thanks / Appreciation": ["thanks", "thank you", "appreciate", "grateful"],
+        "Apology": ["sorry", "my bad", "apologize"],
+        "Confirmation / Acknowledgement": ["okay", "ok", "got it", "understood", "yes", "sure"],
+        "Negation / Disagreement": ["no", "not really", "don't agree", "never"],
+        
+        # 8. General Question (lowest priority specific intent)
+        "General Question": ["what", "how", "when", "where", "why", "?"]
+    }
+
+    # Multi-pass matching for better precision
+    for intent, keywords in intent_map.items():
+        for kw in keywords:
+            if kw == "?":
+                if "?" in text: return intent
+                continue
+            
+            # Escape keyword for regex and wrap in word boundaries
+            pattern = rf"\b{re.escape(kw)}\b"
+            if re.search(pattern, text_lower):
+                return intent
+            # Also check lemmas for more flexibility
+            if kw in lemma_set:
+                return intent
+            
     return "General Statement"
 
 @app.route('/analyze', methods=['POST'])
