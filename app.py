@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import spacy
 import os
@@ -9,7 +9,7 @@ CORS(app)
 
 @app.route("/")
 def home():
-    return "Sentiment AI Backend is running. Use /analyze for processing."
+    return send_from_directory(os.getcwd(), "index.html")
 
 # Load SpaCy small English model
 # Run: python -m spacy download en_core_web_sm
